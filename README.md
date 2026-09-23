@@ -20,16 +20,14 @@ Giải pháp tự động kiểm tra và cập nhật phiên bản mới nhất 
 
 ---
 
-## 🔄 Luồng hoạt động (Workflow)
+## 🔄 Quy trình Cập nhật Tự động (Update Pipeline)
 
-```mermaid
-graph TD
-    A[Ứng dụng WinForms Khởi chạy] --> B[Gọi GitHub API lấy Latest Release]
-    B --> C{Có phiên bản mới?}
-    C -- Không --> D[Tiếp tục chạy ứng dụng]
-    C -- Có --> E[Hiển thị UI Cập nhật & Release Notes]
-    E --> F{Nguời dùng đồng ý?}
-    F -- Hủy --> D
-    F -- Cập nhật --> G[Tải file Release về thư mục Temp]
-    G --> H[Khởi chạy Updater.exe & Đóng App chính]
-    H --> I[Updater ghi đè file cũ & Chạy lại App chính]
+Quy trình xử lý được chia làm **4 giai đoạn chính** nhằm bảo đảm không gây đơ giao diện (UI Freeze) và an toàn dữ liệu:
+
+| Giai đoạn | Hành động chính | Chi tiết kỹ thuật |
+| :--- | :--- | :--- |
+| **1. Check Phase** *(Bất đồng bộ)* | 🔍 **Kiểm tra phiên bản** | - Gửi GET Request tới GitHub REST API.<br>- Parse chuỗi Tag Version theo chuẩn `SemVer` (Semantic Versioning). |
+| **2. Decision Phase** *(User Interaction)* | 🎨 **Tương tác Giao diện** | - So sánh Version hiện tại với `latest_release`.<br>- Hiển thị Form WinForms render nội dung Release Notes dạng Markdown.<br>- Người dùng lựa chọn **Cập nhật ngay** hoặc **Bỏ qua**. |
+| **3. Download Phase** *(Temp Storage)* | 📥 **Tải gói cập nhật** | - Tải file nén `.zip` đính kèm từ GitHub Asset về `%TEMP%/AutoUpdate/`.<br>- Báo tiến trình liên tục qua `IProgress<int>` lên thanh Progress Bar. |
+| **4. Apply Phase** *(Independent Process)* | 🔄 **Ghi đè & Re-launch** | - Gọi `Updater.exe` riêng biệt và đóng App chính.<br>- Sau khi App chính giải phóng File Lock: Sao lưu (Backup) $\rightarrow$ Ghi đè File $\rightarrow$ Khởi chạy lại App chính. |n giải nén đè file mới.
+- <img src="https://img.shields.io/badge/Step_6-Hoàn_tất-brightgreen?style=for-the-badge" height="22"/> **Re-launch:** Tự động mở lại ứng dụng chính và xóa các file tạm (`Clean Temp`).
